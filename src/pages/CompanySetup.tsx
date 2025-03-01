@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { useCreateCompany } from "@/hooks/useCompanies";
+import { useCreateCompany, CreateCompanyData } from "@/hooks/useCompanies";
 
 const formSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -22,12 +22,14 @@ const formSchema = z.object({
   description: z.string().optional(),
 });
 
+type CompanyFormValues = z.infer<typeof formSchema>;
+
 const CompanySetup = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { mutate: createCompany, isLoading } = useCreateCompany();
+  const { mutate: createCompany, isPending } = useCreateCompany();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<CompanyFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -39,8 +41,18 @@ const CompanySetup = () => {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    createCompany(values, {
+  const onSubmit = (values: CompanyFormValues) => {
+    // Ensure all required fields are present before sending
+    const companyData: CreateCompanyData = {
+      name: values.name,
+      nit: values.nit,
+      email: values.email,
+      phone: values.phone,
+      address: values.address,
+      description: values.description,
+    };
+
+    createCompany(companyData, {
       onSuccess: () => {
         toast({
           title: "Empresa creada",
@@ -161,9 +173,9 @@ const CompanySetup = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-[#080b53] hover:bg-[#0a0e6b]"
-                  disabled={isLoading}
+                  disabled={isPending}
                 >
-                  {isLoading ? (
+                  {isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creando empresa...

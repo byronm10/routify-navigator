@@ -5,7 +5,7 @@ import { useAuth } from "./useAuth";
 
 const API_URL = "https://api.your-backend-url.com"; // Replace with your actual API URL
 
-interface Company {
+export interface Company {
   id: string;
   name: string;
   nit: string;
@@ -16,7 +16,7 @@ interface Company {
   created_at: string;
 }
 
-interface CreateCompanyData {
+export interface CreateCompanyData {
   name: string;
   nit: string;
   email: string;
