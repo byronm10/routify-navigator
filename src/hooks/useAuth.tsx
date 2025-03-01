@@ -4,9 +4,14 @@ import { CognitoUser, AuthenticationDetails, CognitoUserPool, CognitoUserAttribu
 
 // Configuration for AWS Cognito - these would be your actual AWS Cognito details
 const poolData = {
-  UserPoolId: "YOUR_USER_POOL_ID", // Replace with your actual User Pool ID
-  ClientId: "YOUR_CLIENT_ID", // Replace with your actual Client ID
+  UserPoolId: "mock-user-pool-id",
+  ClientId: "mock-client-id",
 };
+
+// For development purposes only
+const MOCK_USERS = [
+  { email: "user@example.com", password: "password123", name: "Test User" }
+];
 
 const userPool = new CognitoUserPool(poolData);
 
@@ -28,7 +33,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
-    checkAuthState();
+    // Check if we have a stored user in localStorage
+    const storedUser = localStorage.getItem("mockUser");
+    if (storedUser) {
+      setIsAuthenticated(true);
+      setUser(JSON.parse(storedUser));
+    }
+    setIsLoading(false);
   }, []);
 
   const checkAuthState = async () => {
@@ -41,7 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               reject(err);
               return;
             }
-            if (session.isValid()) {
+            if (session && session.isValid()) {
               setIsAuthenticated(true);
               setUser(currentUser);
             }
@@ -58,74 +69,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = (name: string, email: string, password: string): Promise<any> => {
     return new Promise((resolve, reject) => {
-      const attributeList = [
-        new CognitoUserAttribute({ Name: "name", Value: name }),
-        new CognitoUserAttribute({ Name: "email", Value: email }),
-      ];
-
-      userPool.signUp(email, password, attributeList, [], (err, result) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(result);
-      });
+      // For development, just simulate signup success
+      console.log("Mock signup with:", { name, email, password });
+      resolve({ user: { email } });
     });
   };
 
   const confirmSignUp = (email: string, code: string): Promise<any> => {
     return new Promise((resolve, reject) => {
-      const userData = {
-        Username: email,
-        Pool: userPool,
-      };
-
-      const cognitoUser = new CognitoUser(userData);
-
-      cognitoUser.confirmRegistration(code, true, (err, result) => {
-        if (err) {
-          reject(err);
-          return;
-        }
-        resolve(result);
-      });
+      // For development, just simulate confirmation success
+      console.log("Mock confirmation with:", { email, code });
+      resolve("SUCCESS");
     });
   };
 
   const signIn = (email: string, password: string): Promise<any> => {
     return new Promise((resolve, reject) => {
-      const userData = {
-        Username: email,
-        Pool: userPool,
-      };
+      // Check against mock users
+      const mockUser = MOCK_USERS.find(
+        (user) => user.email === email && user.password === password
+      );
 
-      const authenticationDetails = new AuthenticationDetails({
-        Username: email,
-        Password: password,
-      });
-
-      const cognitoUser = new CognitoUser(userData);
-
-      cognitoUser.authenticateUser(authenticationDetails, {
-        onSuccess: (result) => {
-          setIsAuthenticated(true);
-          setUser(cognitoUser);
-          resolve(result);
-        },
-        onFailure: (err) => {
-          reject(err);
-        },
-      });
+      if (mockUser) {
+        const userObj = {
+          email: mockUser.email,
+          name: mockUser.name,
+          getSession: (callback: any) => {
+            callback(null, {
+              isValid: () => true,
+              getIdToken: () => ({
+                getJwtToken: () => "mock-jwt-token"
+              })
+            });
+          }
+        };
+        
+        setIsAuthenticated(true);
+        setUser(userObj);
+        
+        // Store the user in localStorage for persistence
+        localStorage.setItem("mockUser", JSON.stringify(userObj));
+        
+        resolve({ user: userObj });
+      } else {
+        reject(new Error("Invalid credentials"));
+      }
     });
   };
 
   const signOut = () => {
-    const currentUser = userPool.getCurrentUser();
-    if (currentUser) {
-      currentUser.signOut();
-      setIsAuthenticated(false);
-      setUser(null);
-    }
+    localStorage.removeItem("mockUser");
+    setIsAuthenticated(false);
+    setUser(null);
   };
 
   return (

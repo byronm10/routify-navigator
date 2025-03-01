@@ -25,20 +25,16 @@ export interface CreateCompanyData {
   description?: string;
 }
 
+// Mock companies for development
+const MOCK_COMPANIES: Company[] = [];
+
 // This is a mock function. In a real app, you'd connect to your backend API
 const fetchCompanies = async (token: string): Promise<Company[]> => {
   // For now we're mocking, but this would be a real API call
   console.log("Fetching companies with token:", token);
   
-  // This would be replaced with a real API call
-  // return fetch(`${API_URL}/companies`, {
-  //   headers: {
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  // }).then((res) => res.json());
-  
   // Mock response for development
-  return Promise.resolve([]);
+  return Promise.resolve(MOCK_COMPANIES);
 };
 
 // Mock function for creating a company
@@ -46,40 +42,27 @@ const createCompanyAPI = async (company: CreateCompanyData, token: string): Prom
   console.log("Creating company with data:", company);
   console.log("Using token:", token);
   
-  // This would be replaced with a real API call
-  // return fetch(`${API_URL}/companies`, {
-  //   method: "POST",
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     Authorization: `Bearer ${token}`,
-  //   },
-  //   body: JSON.stringify(company),
-  // }).then((res) => res.json());
-  
-  // Mock response for development
-  return Promise.resolve({
+  // Create a new mock company
+  const newCompany: Company = {
     id: "mock-id-" + Date.now(),
     ...company,
     created_at: new Date().toISOString(),
-  });
+  };
+  
+  // Add to our mock database
+  MOCK_COMPANIES.push(newCompany);
+  
+  return Promise.resolve(newCompany);
 };
 
 export const useCompanies = () => {
   const { user, isAuthenticated } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  
-  // In a real app, you'd get the token from Cognito
-  // We're using a mock token for now
-  user?.getSession((err: any, session: any) => {
-    if (session) {
-      setToken(session.getIdToken().getJwtToken());
-    }
-  });
+  const mockToken = "mock-token";
   
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["companies"],
-    queryFn: () => fetchCompanies(token || ""),
-    enabled: !!token && isAuthenticated,
+    queryFn: () => fetchCompanies(mockToken),
+    enabled: isAuthenticated,
   });
   
   return {
@@ -90,19 +73,11 @@ export const useCompanies = () => {
 };
 
 export const useCreateCompany = () => {
-  const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(null);
-  
-  // In a real app, you'd get the token from Cognito
-  user?.getSession((err: any, session: any) => {
-    if (session) {
-      setToken(session.getIdToken().getJwtToken());
-    }
-  });
+  const mockToken = "mock-token";
   
   return useMutation({
-    mutationFn: (company: CreateCompanyData) => createCompanyAPI(company, token || ""),
+    mutationFn: (company: CreateCompanyData) => createCompanyAPI(company, mockToken),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["companies"] });
     },
